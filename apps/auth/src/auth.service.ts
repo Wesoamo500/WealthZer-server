@@ -214,8 +214,10 @@ export class AuthService {
       },
     });
 
-    console.log(`[AuthService] Emitting send-otp event for ${email} with code ${code}`);
-    this.notificationClient.emit({ cmd: 'send-otp' }, { email, code });
+    this.notificationClient.emit('send-otp', { email, code }).subscribe({
+      next: () => console.log(`[AuthService] Event 'send-otp' emitted successfully`),
+      error: (err) => console.error(`[AuthService] Error emitting event:`, err),
+    });
     
     return { success: true };
   }

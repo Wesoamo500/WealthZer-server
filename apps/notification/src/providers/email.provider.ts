@@ -11,16 +11,23 @@ export class EmailProvider implements NotificationProvider {
   constructor(private readonly configService: ConfigService) {
     const smtpHost = this.configService.get<string>('SMTP_HOST');
     const smtpPort = this.configService.get<number>('SMTP_PORT');
-    console.log(`[EmailProvider] Initializing with host: ${smtpHost}, port: ${smtpPort}`);
+    const smtpSecure = String(this.configService.get('SMTP_SECURE')) === 'true';
     
     this.transporter = nodemailer.createTransport({
       host: smtpHost,
       port: Number(smtpPort),
-      secure: this.configService.get<boolean>('SMTP_SECURE', false),
+      secure: smtpSecure,
       auth: {
         user: this.configService.get<string>('SMTP_USER'),
         pass: this.configService.get<string>('SMTP_PASS'),
       },
+      connectionTimeout: 10000, // 10 seconds
+      greetingTimeout: 10000,   // 10 seconds
+      socketTimeout: 15000,     // 15 seconds
+      tls: {
+        rejectUnauthorized: false, // For local envs with certificate issues
+        minVersion: 'TLSv1.2'
+      }
     });
   }
 

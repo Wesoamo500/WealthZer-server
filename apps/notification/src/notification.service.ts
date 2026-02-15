@@ -9,7 +9,9 @@ export class NotificationService {
   constructor(
     private readonly emailProvider: EmailProvider,
     private readonly smsProvider: SmsProvider,
-  ) {}
+  ) {
+    console.log('[NotificationService] Initialized');
+  }
 
   async sendEmail(to: string, subject: string, body: string) {
     return this.emailProvider.send({ to, subject, message: body });
