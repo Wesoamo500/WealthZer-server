@@ -21,6 +21,10 @@ export class CreateTransactionDto {
 
   @IsOptional()
   isAiSuggested?: boolean;
+
+  @IsOptional()
+  @IsString() // Using IsString for IsDateString compatibility or raw date
+  date?: string | Date;
 }
 
 export class CreateAssetDto {

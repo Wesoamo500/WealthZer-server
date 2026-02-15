@@ -16,6 +16,7 @@ export class FinancialService {
         account: dto.account,
         note: dto.note,
         isAiSuggested: dto.isAiSuggested || false,
+        date: dto.date ? new Date(dto.date) : undefined,
       },
     });
   }
