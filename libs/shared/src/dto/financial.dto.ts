@@ -53,3 +53,16 @@ export class UpdateAssetValueDto {
   @IsNumber()
   currentValue: number;
 }
+
+export class CreateBudgetDto {
+  @IsNotEmpty()
+  @IsEnum(TransactionCategory)
+  category: TransactionCategory;
+
+  @IsNumber()
+  amount: number;
+
+  @IsString()
+  @IsOptional()
+  period?: string;
+}

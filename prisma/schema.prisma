@@ -37,6 +37,7 @@ model User {
   transactions      Transaction[]
   portfolioAssets   PortfolioAsset[]
   aiChatHistory     AiChatHistory[]
+  budgets           Budget[]
   
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
@@ -131,4 +132,18 @@ model AiChatHistory {
   user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("ai_chat_history")
+}
+
+model Budget {
+  id              String   @id @default(uuid())
+  userId          String
+  category        String   // Matches TransactionCategory
+  amount          Decimal  // The limit
+  period          String   @default("MONTHLY") // MONTHLY, WEEKLY
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("budgets")
 }

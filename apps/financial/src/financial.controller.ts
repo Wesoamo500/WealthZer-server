@@ -1,7 +1,7 @@
 import { Controller } from '@nestjs/common';
 import { MessagePattern, Payload } from '@nestjs/microservices';
 import { FinancialService } from './financial.service';
-import { CreateTransactionDto, CreateAssetDto, UpdateAssetValueDto } from '@wealthzer/shared';
+import { CreateTransactionDto, CreateAssetDto, UpdateAssetValueDto, CreateBudgetDto } from '@wealthzer/shared';
 
 @Controller()
 export class FinancialController {
@@ -25,6 +25,16 @@ export class FinancialController {
   @MessagePattern({ cmd: 'add-asset' })
   async addAsset(@Payload() data: { userId: string, dto: CreateAssetDto }) {
     return this.financialService.addAsset(data.userId, data.dto);
+  }
+
+  @MessagePattern({ cmd: 'create-budget' })
+  async createBudget(@Payload() data: { userId: string, dto: CreateBudgetDto }) {
+    return this.financialService.createBudget(data.userId, data.dto);
+  }
+
+  @MessagePattern({ cmd: 'get-budgets' })
+  async getBudgets(@Payload() data: { userId: string }) {
+    return this.financialService.getBudgets(data.userId);
   }
 
   @MessagePattern({ cmd: 'get-net-worth' })

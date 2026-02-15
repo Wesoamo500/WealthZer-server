@@ -4,6 +4,7 @@ export enum TransactionCategory {
   TRANSPORT = 'TRANSPORT',
   FUN = 'FUN',
   OTHERS = 'OTHERS',
+  INCOME = 'INCOME',
 }
 
 export enum AccountType {

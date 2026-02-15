@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../auth/src/prisma/prisma.service'; // Adjust path if needed or use a shared prisma service
-import { CreateTransactionDto, CreateAssetDto, UpdateAssetValueDto } from '@wealthzer/shared';
+import { CreateTransactionDto, CreateAssetDto, UpdateAssetValueDto, CreateBudgetDto, TransactionCategory } from '@wealthzer/shared';
 
 @Injectable()
 export class FinancialService {
@@ -55,19 +55,79 @@ export class FinancialService {
     });
   }
 
-  async getNetWorth(userId: string) {
-    const assets = await this.prisma.portfolioAsset.findMany({
+  async createBudget(userId: string, dto: CreateBudgetDto) {
+    return this.prisma.budget.create({
+      data: {
+        userId,
+        category: dto.category,
+        amount: dto.amount,
+        period: dto.period || 'MONTHLY',
+      },
+    });
+  }
+
+  async getBudgets(userId: string) {
+    return this.prisma.budget.findMany({
       where: { userId },
     });
+  }
 
-    const totalAssets = assets.reduce((sum, asset) => {
+  async getNetWorth(userId: string) {
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+    const [assets, transactions, budgets] = await Promise.all([
+      this.prisma.portfolioAsset.findMany({ where: { userId } }),
+      this.prisma.transaction.findMany({ where: { userId } }),
+      this.prisma.budget.findMany({ where: { userId } }),
+    ]);
+
+    // 1. Calculate Investment Value
+    const totalInvestments = assets.reduce((sum, asset) => {
       const value = asset.currentValue ? Number(asset.currentValue) : Number(asset.purchasePrice);
       return sum + (value * Number(asset.amount));
     }, 0);
 
-    // In a real app, we would also subtract liabilities (Credit accounts)
+    // 2. Calculate Cash and Credit balances from transactions (Simulated)
+    // In a real app, these would come from linked bank accounts
+    const cashBalance = transactions
+      .filter(t => t.account === 'CASH' || t.account === 'BANK')
+      .reduce((sum, t) => sum + (t.category === 'INCOME' ? Number(t.amount) : -Number(t.amount)), 0);
+
+    const creditBalance = transactions
+      .filter(t => t.account === 'CREDIT')
+      .reduce((sum, t) => sum + Number(t.amount), 0);
+
+    const totalNetWorth = totalInvestments + cashBalance - creditBalance;
+
+    // 3. Current Month Stats
+    const currentMonthTransactions = transactions.filter(t => t.date >= startOfMonth);
+    const totalIncome = currentMonthTransactions
+      .filter(t => t.category === 'INCOME')
+      .reduce((sum, t) => sum + Number(t.amount), 0);
+    const totalExpenses = currentMonthTransactions
+      .filter(t => t.category !== 'INCOME')
+      .reduce((sum, t) => sum + Number(t.amount), 0);
+
+    // 4. Budget Progress
+    const budgetsWithProgress = budgets.map(budget => {
+      const spent = currentMonthTransactions
+        .filter(t => t.category === budget.category)
+        .reduce((sum, t) => sum + Number(t.amount), 0);
+      return {
+        ...budget,
+        spent,
+        remaining: Number(budget.amount) - spent,
+        progress: (spent / Number(budget.amount)) * 100,
+      };
+    });
+
     return {
-      totalNetWorth: totalAssets,
+      totalNetWorth,
+      totalInvestments,
+      totalIncome,
+      totalExpenses,
+      budgets: budgetsWithProgress,
       currency: 'USD',
     };
   }
