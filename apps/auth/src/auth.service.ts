@@ -1,10 +1,11 @@
-import { Injectable, UnauthorizedException, ConflictException } from '@nestjs/common';
+import { Injectable, UnauthorizedException, ConflictException, Inject } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from './prisma/prisma.service';
 import { RegisterDto, LoginDto, TwoFactorVerifyDto, SocialLoginDto, SocialProvider } from '@wealthzer/shared';
 import * as argon2 from 'argon2';
 import { OAuth2Client } from 'google-auth-library';
+import { ClientProxy } from '@nestjs/microservices';
 
 @Injectable()
 export class AuthService {
@@ -14,6 +15,7 @@ export class AuthService {
     private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
+    @Inject('NOTIFICATION_SERVICE') private readonly notificationClient: ClientProxy,
   ) {
     this.googleClient = new OAuth2Client(this.configService.get('GOOGLE_CLIENT_ID'));
   }
@@ -128,6 +130,9 @@ export class AuthService {
     });
 
     if (user.isTwoFactorEnabled) {
+      // Trigger OTP generation and sending
+      await this.resendOtp(user.email);
+      
       // Issue temporary 2FA token
       const tempToken = await this.jwtService.signAsync({
         userId: user.id,
@@ -205,11 +210,12 @@ export class AuthService {
         userId: user.id,
         codeHash,
         type: 'LOGIN',
-        expiresAt: new Date(Date.now() + 5 * 60 * 1000), // 5 minutes
+        expiresAt: new Date(Date.now() + 10 * 60 * 1000), // Updated to 10 minutes as per design
       },
     });
 
-    console.log(`[SIMULATED SMS/EMAIL] OTP for ${email}: ${code}`);
+    console.log(`[AuthService] Emitting send-otp event for ${email} with code ${code}`);
+    this.notificationClient.emit({ cmd: 'send-otp' }, { email, code });
     
     return { success: true };
   }
