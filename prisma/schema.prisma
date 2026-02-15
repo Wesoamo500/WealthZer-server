@@ -1,0 +1,134 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  CUSTOMER
+  ADMIN
+  COMPLIANCE_OFFICER
+}
+
+enum TokenStatus {
+  ACTIVE
+  REVOKED
+  EXPIRED
+}
+
+model User {
+  id                String   @id @default(uuid())
+  email             String   @unique
+  passwordHash      String
+  fullName          String?
+  role              Role     @default(CUSTOMER)
+  isEmailVerified   Boolean  @default(false)
+  isTwoFactorEnabled Boolean  @default(false)
+  twoFactorSecret   String?
+  status            String   @default("ACTIVE") // ACTIVE, LOCKED, BLOCKED
+  failedLoginAttempts Int    @default(0)
+  tokenVersion      Int      @default(0)
+  
+  refreshTokens     RefreshToken[]
+  otpCodes          OtpCode[]
+  devices           Device[]
+  transactions      Transaction[]
+  portfolioAssets   PortfolioAsset[]
+  aiChatHistory     AiChatHistory[]
+  
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@map("users")
+}
+
+model RefreshToken {
+  id          String   @id @default(uuid())
+  userId      String
+  tokenHash   String   @unique
+  deviceId    String
+  expiresAt   DateTime
+  issuedAt    DateTime @default(now())
+  revokedAt   DateTime?
+  ipAddress   String?
+  userAgent   String?
+  status      TokenStatus @default(ACTIVE)
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("refresh_tokens")
+}
+
+model OtpCode {
+  id        String   @id @default(uuid())
+  userId    String
+  codeHash  String
+  type      String   // LOGIN, RESET_PASSWORD, EMAIL_VERIFY
+  expiresAt DateTime
+  attempts  Int      @default(0)
+  isUsed    Boolean  @default(false)
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("otp_codes")
+}
+
+model Device {
+  id           String   @id @default(uuid())
+  userId       String
+  deviceId     String
+  deviceName   String?
+  lastIp       String?
+  lastLoginAt  DateTime @default(now())
+  isTrusted    Boolean  @default(false)
+
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, deviceId])
+  @@map("devices")
+}
+
+model Transaction {
+  id              String   @id @default(uuid())
+  userId          String
+  title           String
+  amount          Decimal
+  category        String   // DINING, GROCERIES, TRANSPORT, FUN, OTHERS
+  account         String   // CASH, BANK, CREDIT
+  note            String?
+  isAiSuggested   Boolean  @default(false)
+  date            DateTime @default(now())
+
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("transactions")
+}
+
+model PortfolioAsset {
+  id              String   @id @default(uuid())
+  userId          String
+  name            String
+  symbol          String
+  amount          Decimal
+  type            String   // CRYPTO, STOCK, CASH
+  purchasePrice   Decimal
+  currentValue    Decimal?
+  
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("portfolio_assets")
+}
+
+model AiChatHistory {
+  id              String   @id @default(uuid())
+  userId          String
+  message         String
+  role            String   // USER, ASSISTANT
+  createdAt       DateTime @default(now())
+
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("ai_chat_history")
+}

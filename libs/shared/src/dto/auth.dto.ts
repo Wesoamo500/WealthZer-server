@@ -1,0 +1,67 @@
+import { IsEmail, IsNotEmpty, IsString, MinLength, IsOptional, IsEnum } from 'class-validator';
+
+export class RegisterDto {
+  @IsEmail()
+  email: string;
+
+  @IsNotEmpty()
+  @IsString()
+  @MinLength(8)
+  password: string;
+
+  @IsOptional()
+  @IsString()
+  fullName?: string;
+
+  @IsOptional()
+  @IsString()
+  referralCode?: string;
+}
+
+export class LoginDto {
+  @IsEmail()
+  email: string;
+
+  @IsNotEmpty()
+  @IsString()
+  password: string;
+
+  @IsOptional()
+  @IsString()
+  deviceId?: string;
+}
+
+export class TwoFactorVerifyDto {
+  @IsEmail()
+  email: string;
+
+  @IsNotEmpty()
+  @IsString()
+  code: string;
+
+  @IsOptional()
+  @IsString()
+  deviceId?: string;
+}
+
+export enum SocialProvider {
+  GOOGLE = 'GOOGLE',
+  APPLE = 'APPLE'
+}
+
+export class SocialLoginDto {
+  @IsEnum(SocialProvider)
+  provider: SocialProvider;
+
+  @IsNotEmpty()
+  @IsString()
+  idToken: string;
+
+  @IsOptional()
+  @IsString()
+  deviceId?: string;
+
+  @IsOptional()
+  @IsString()
+  fullName?: string;
+}
