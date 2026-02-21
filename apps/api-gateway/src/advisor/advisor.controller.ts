@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Inject } from '@nestjs/common';
+import { Controller, Get, Post, Body, Inject, Query } from '@nestjs/common';
 import { ClientProxy } from '@nestjs/microservices';
 import { firstValueFrom } from 'rxjs';
 import { User } from '../auth/user.decorator';
@@ -13,8 +13,12 @@ export class AdvisorController {
   }
 
   @Post('ask')
-  async askAdvisor(@User('userId') userId: string, @Body('question') question: string) {
-    return firstValueFrom(this.advisorClient.send({ cmd: 'ask-advisor' }, { userId, question }));
+  async askAdvisor(
+    @User('userId') userId: string, 
+    @Body('question') question: string,
+    @Body('provider') provider?: string
+  ) {
+    return firstValueFrom(this.advisorClient.send({ cmd: 'ask-advisor' }, { userId, question, provider }));
   }
 
   @Post('clear-history')
@@ -23,7 +27,7 @@ export class AdvisorController {
   }
 
   @Get('insight')
-  async generateInsight(@User('userId') userId: string) {
-    return firstValueFrom(this.advisorClient.send({ cmd: 'generate-insight' }, { userId }));
+  async generateInsight(@User('userId') userId: string, @Query('provider') provider?: string) {
+    return firstValueFrom(this.advisorClient.send({ cmd: 'generate-insight' }, { userId, provider }));
   }
 }
