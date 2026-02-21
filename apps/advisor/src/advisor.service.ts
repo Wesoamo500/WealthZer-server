@@ -86,9 +86,9 @@ export class AdvisorService {
         return this.saveSimulatedResponse(userId, question);
       }
 
-      const ai = new GoogleGenAI();
+      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
       
-      const systemPrompt = `You are Finner, the native AI financial assistant for an app called WealthZer.
+      const systemPrompt = `You are WealthZer AI, the native AI financial assistant for an app called WealthZer.
 Below is the user's real-time financial data containing their Budgets, Assets, and Recent Transactions.
 Analyze this data carefully to answer the user's question.
 If the data is empty, politely inform them they need to track transactions or add assets first.
