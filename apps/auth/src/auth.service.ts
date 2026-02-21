@@ -2,7 +2,7 @@ import { Injectable, UnauthorizedException, ConflictException, Inject } from '@n
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from './prisma/prisma.service';
-import { RegisterDto, LoginDto, TwoFactorVerifyDto, SocialLoginDto, SocialProvider } from '@wealthzer/shared';
+import { RegisterDto, LoginDto, TwoFactorVerifyDto, SocialLoginDto, SocialProvider, ForgotPasswordDto, VerifyResetOtpDto, ResetPasswordDto } from '@wealthzer/shared';
 import * as argon2 from 'argon2';
 import { OAuth2Client } from 'google-auth-library';
 import { ClientProxy } from '@nestjs/microservices';
@@ -186,6 +186,124 @@ export class AuthService {
     });
 
     return this.generateTokens(user, verifyDto.deviceId);
+  }
+
+  async forgotPassword(dto: ForgotPasswordDto) {
+    const user = await this.prisma.user.findUnique({
+      where: { email: dto.email },
+    });
+
+    if (!user) {
+      // Return success even if user not found for security (mitigate email enumeration)
+      return { success: true, message: 'If an account exists, a reset code has been sent.' };
+    }
+
+    // Generate 6-digit OTP for password reset
+    const code = Math.floor(100000 + Math.random() * 900000).toString();
+    const codeHash = await argon2.hash(code);
+
+    // Invalidate old RESET_PASSWORD OTPs
+    await this.prisma.otpCode.updateMany({
+      where: { userId: user.id, type: 'RESET_PASSWORD', isUsed: false },
+      data: { isUsed: true },
+    });
+
+    await this.prisma.otpCode.create({
+      data: {
+        userId: user.id,
+        codeHash,
+        type: 'RESET_PASSWORD',
+        expiresAt: new Date(Date.now() + 15 * 60 * 1000), // 15 minutes
+      },
+    });
+
+    // Notify user
+    this.notificationClient.emit('send-otp', { 
+      email: user.email, 
+      code, 
+      subject: 'Password Reset Code' 
+    }).subscribe();
+
+    return { success: true, message: 'Verification code sent to your email.' };
+  }
+
+  async verifyResetOtp(dto: VerifyResetOtpDto) {
+    const user = await this.prisma.user.findUnique({
+      where: { email: dto.email },
+      include: { 
+        otpCodes: { 
+          where: { 
+            type: 'RESET_PASSWORD', 
+            isUsed: false, 
+            expiresAt: { gt: new Date() } 
+          } 
+        } 
+      },
+    });
+
+    if (!user || user.otpCodes.length === 0) {
+      throw new UnauthorizedException('Invalid or expired reset code');
+    }
+
+    const otp = user.otpCodes[0];
+    const isOtpValid = await argon2.verify(otp.codeHash, dto.code);
+
+    if (!isOtpValid) {
+      await this.prisma.otpCode.update({
+        where: { id: otp.id },
+        data: { attempts: { increment: 1 } },
+      });
+      throw new UnauthorizedException('Invalid reset code');
+    }
+
+    return { success: true };
+  }
+
+  async resetPassword(dto: ResetPasswordDto) {
+    const user = await this.prisma.user.findUnique({
+      where: { email: dto.email },
+      include: { 
+        otpCodes: { 
+          where: { 
+            type: 'RESET_PASSWORD', 
+            isUsed: false, 
+            expiresAt: { gt: new Date() } 
+          } 
+        } 
+      },
+    });
+
+    if (!user || user.otpCodes.length === 0) {
+      throw new UnauthorizedException('Invalid or expired reset session');
+    }
+
+    const otp = user.otpCodes[0];
+    const isOtpValid = await argon2.verify(otp.codeHash, dto.code);
+
+    if (!isOtpValid) {
+       throw new UnauthorizedException('Invalid reset code');
+    }
+
+    // Hash new password
+    const passwordHash = await argon2.hash(dto.newPassword);
+
+    // Update user and invalidate OTP
+    await this.prisma.$transaction([
+      this.prisma.user.update({
+        where: { id: user.id },
+        data: { 
+          passwordHash,
+          failedLoginAttempts: 0,
+          status: 'ACTIVE' // Unlock if it was locked
+        },
+      }),
+      this.prisma.otpCode.update({
+        where: { id: otp.id },
+        data: { isUsed: true },
+      }),
+    ]);
+
+    return { success: true, message: 'Password has been reset successfully.' };
   }
 
   async resendOtp(email: string) {

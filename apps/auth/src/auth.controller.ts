@@ -1,7 +1,7 @@
 import { Controller } from '@nestjs/common';
 import { MessagePattern, Payload } from '@nestjs/microservices';
 import { AuthService } from './auth.service';
-import { RegisterDto, LoginDto, SocialLoginDto, TwoFactorVerifyDto } from '@wealthzer/shared';
+import { RegisterDto, LoginDto, SocialLoginDto, TwoFactorVerifyDto, ForgotPasswordDto, VerifyResetOtpDto, ResetPasswordDto } from '@wealthzer/shared';
 
 @Controller()
 export class AuthController {
@@ -30,5 +30,20 @@ export class AuthController {
   @MessagePattern({ cmd: 'resend-otp' })
   async resendOtp(@Payload() data: { email: string }) {
     return this.authService.resendOtp(data.email);
+  }
+
+  @MessagePattern({ cmd: 'forgot-password' })
+  async forgotPassword(@Payload() dto: ForgotPasswordDto) {
+    return this.authService.forgotPassword(dto);
+  }
+
+  @MessagePattern({ cmd: 'verify-reset-otp' })
+  async verifyResetOtp(@Payload() dto: VerifyResetOtpDto) {
+    return this.authService.verifyResetOtp(dto);
+  }
+
+  @MessagePattern({ cmd: 'reset-password' })
+  async resetPassword(@Payload() dto: ResetPasswordDto) {
+    return this.authService.resetPassword(dto);
   }
 }

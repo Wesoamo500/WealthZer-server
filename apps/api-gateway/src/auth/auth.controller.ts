@@ -1,6 +1,6 @@
 import { Controller, Post, Body, Inject } from '@nestjs/common';
 import { ClientProxy } from '@nestjs/microservices';
-import { RegisterDto, LoginDto, TwoFactorVerifyDto, SocialLoginDto, Public } from '@wealthzer/shared';
+import { RegisterDto, LoginDto, TwoFactorVerifyDto, SocialLoginDto, Public, ForgotPasswordDto, VerifyResetOtpDto, ResetPasswordDto } from '@wealthzer/shared';
 import { firstValueFrom } from 'rxjs';
 
 @Controller('auth')
@@ -35,5 +35,23 @@ export class AuthController {
   @Post('social-login')
   async socialLogin(@Body() socialDto: SocialLoginDto) {
     return firstValueFrom(this.authClient.send({ cmd: 'social-login' }, socialDto));
+  }
+
+  @Public()
+  @Post('forgot-password')
+  async forgotPassword(@Body() dto: ForgotPasswordDto) {
+    return firstValueFrom(this.authClient.send({ cmd: 'forgot-password' }, dto));
+  }
+
+  @Public()
+  @Post('verify-reset-otp')
+  async verifyResetOtp(@Body() dto: VerifyResetOtpDto) {
+    return firstValueFrom(this.authClient.send({ cmd: 'verify-reset-otp' }, dto));
+  }
+
+  @Public()
+  @Post('reset-password')
+  async resetPassword(@Body() dto: ResetPasswordDto) {
+    return firstValueFrom(this.authClient.send({ cmd: 'reset-password' }, dto));
   }
 }
