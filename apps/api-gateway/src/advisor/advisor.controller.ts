@@ -21,4 +21,9 @@ export class AdvisorController {
   async clearChatHistory(@User('userId') userId: string) {
     return firstValueFrom(this.advisorClient.send({ cmd: 'clear-chat-history' }, { userId }));
   }
+
+  @Get('insight')
+  async generateInsight(@User('userId') userId: string) {
+    return firstValueFrom(this.advisorClient.send({ cmd: 'generate-insight' }, { userId }));
+  }
 }

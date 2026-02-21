@@ -20,4 +20,9 @@ export class AdvisorController {
   async askAdvisor(@Payload() data: { userId: string, question: string }) {
     return this.advisorService.askAdvisor(data.userId, data.question);
   }
+
+  @MessagePattern({ cmd: 'generate-insight' })
+  async generateInsight(@Payload() data: { userId: string }) {
+    return this.advisorService.generateInsight(data.userId);
+  }
 }

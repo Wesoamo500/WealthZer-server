@@ -136,6 +136,72 @@ ${context}
     }
   }
 
+  async generateInsight(userId: string) {
+    try {
+      // 1. Fetch User Financial Data for insight context
+      const user = await this.prisma.user.findUnique({
+        where: { id: userId },
+        include: {
+          transactions: {
+            orderBy: { date: 'desc' },
+            take: 30
+          },
+          budgets: true,
+          portfolioAssets: true
+        }
+      });
+
+      if (!user) throw new Error('User not found');
+
+      // 2. Build Context
+      let context = `Transactions: ${user.transactions.length}, Assets: ${user.portfolioAssets.length}, Budgets: ${user.budgets.length}.\n`;
+      user.transactions.slice(0, 10).forEach(t => {
+        context += `- ${t.category} $${t.amount}\n`;
+      });
+      user.budgets.forEach(b => {
+        context += `- Budget ${b.category} $${b.amount}\n`;
+      });
+
+      if (!process.env.GEMINI_API_KEY) {
+        return {
+          title: "Setup Needed",
+          description: "Add GEMINI_API_KEY to see real AI insights based on your data.",
+          action: "Configure API"
+        };
+      }
+
+      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+      const prompt = `You are a financial AI. Look at this user's recent data:
+${context}
+Generate exactly ONE actionable, smart financial insight for the user. 
+Return ONLY a raw JSON object (with no whitespace/markdown formatting blocks like \`\`\`json) with the following structure:
+{
+  "title": "Short catchy title (e.g., Subscription Optimization)",
+  "description": "1-2 sentence description of the insight.",
+  "action": "A short 2-3 word action label (e.g., Review Subscriptions)"
+}
+If there's almost no data, tell them to add some transactions to get insights!`;
+
+      const response = await ai.models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents: [{ role: 'user', parts: [{ text: prompt }] }],
+      });
+
+      let responseText = response.text || "{}";
+      responseText = responseText.replace(/```json/gi, '').replace(/```/g, '').trim();
+      
+      return JSON.parse(responseText);
+
+    } catch (error) {
+      Logger.error(`Failed to generate AI insight: ${(error as Error).message}`, 'AdvisorService');
+      return {
+        title: "Insight Unavailable",
+        description: "We couldn't generate a fresh insight right now. Check back later!",
+        action: "Dismiss"
+      };
+    }
+  }
+
   private async saveSimulatedResponse(userId: string, question: string) {
     let response = "I'm a simulated version of Finner AI. Please provide a GEMINI_API_KEY in your backend/.env file to chat with your real data!";
     
