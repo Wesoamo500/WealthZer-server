@@ -56,6 +56,21 @@ export class FinancialService {
   }
 
   async createBudget(userId: string, dto: CreateBudgetDto) {
+    // Check if budget for category already exists
+    const existingBudget = await this.prisma.budget.findFirst({
+      where: { userId, category: dto.category },
+    });
+
+    if (existingBudget) {
+      return this.prisma.budget.update({
+        where: { id: existingBudget.id },
+        data: {
+          amount: dto.amount,
+          period: dto.period || 'MONTHLY',
+        },
+      });
+    }
+
     return this.prisma.budget.create({
       data: {
         userId,
@@ -88,17 +103,11 @@ export class FinancialService {
       return sum + (value * Number(asset.amount));
     }, 0);
 
-    // 2. Calculate Cash and Credit balances from transactions (Simulated)
-    // In a real app, these would come from linked bank accounts
-    const cashBalance = transactions
-      .filter(t => t.account === 'CASH' || t.account === 'BANK')
-      .reduce((sum, t) => sum + (t.category === 'INCOME' ? Number(t.amount) : -Number(t.amount)), 0);
+    // 2. Calculate Cash and Credit balances from transactions
+    // Sum of all transactions (Income is +, Expenses are -)
+    const transactionBalance = transactions.reduce((sum, t) => sum + Number(t.amount), 0);
 
-    const creditBalance = transactions
-      .filter(t => t.account === 'CREDIT')
-      .reduce((sum, t) => sum + Number(t.amount), 0);
-
-    const totalNetWorth = totalInvestments + cashBalance - creditBalance;
+    const totalNetWorth = totalInvestments + transactionBalance;
 
     // 3. Current Month Stats
     const currentMonthTransactions = transactions.filter(t => t.date >= startOfMonth);
@@ -122,11 +131,23 @@ export class FinancialService {
       };
     });
 
+    // 5. Daily Trend Calculation
+    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const todaysTransactions = currentMonthTransactions.filter(t => t.date >= startOfToday);
+    
+    // Sum of all transactions today
+    const dailyChange = todaysTransactions.reduce((sum, t) => sum + Number(t.amount), 0);
+
+    const prevNetWorth = totalNetWorth - dailyChange;
+    const dailyChangePercent = prevNetWorth !== 0 ? (dailyChange / prevNetWorth) * 100 : 0;
+
     return {
       totalNetWorth,
       totalInvestments,
       totalIncome,
       totalExpenses,
+      dailyChange,
+      dailyChangePercent,
       budgets: budgetsWithProgress,
       currency: 'USD',
     };
