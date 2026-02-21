@@ -376,4 +376,53 @@ export class AuthService {
       },
     };
   }
+
+  async getProfile(userId: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        email: true,
+        fullName: true,
+        role: true,
+        avatarUrl: true,
+        advisorMode: true,
+        aiInsightsFrequency: true,
+        isBiometricsEnabled: true,
+        pushNotificationsEnabled: true,
+        createdAt: true,
+      } as any,
+    });
+
+    if (!user) {
+      throw new UnauthorizedException('User not found');
+    }
+
+    return user;
+  }
+
+  async updateProfile(userId: string, dto: any) {
+    const user = await this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        fullName: dto.fullName,
+        avatarUrl: dto.avatarUrl,
+        advisorMode: dto.advisorMode,
+        aiInsightsFrequency: dto.aiInsightsFrequency,
+        isBiometricsEnabled: dto.isBiometricsEnabled,
+        pushNotificationsEnabled: dto.pushNotificationsEnabled,
+      } as any,
+    });
+
+    return {
+      id: user.id,
+      email: (user as any).email,
+      fullName: (user as any).fullName,
+      avatarUrl: (user as any).avatarUrl,
+      advisorMode: (user as any).advisorMode,
+      aiInsightsFrequency: (user as any).aiInsightsFrequency,
+      isBiometricsEnabled: (user as any).isBiometricsEnabled,
+      pushNotificationsEnabled: (user as any).pushNotificationsEnabled,
+    };
+  }
 }

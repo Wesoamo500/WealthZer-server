@@ -31,6 +31,13 @@ model User {
   failedLoginAttempts Int    @default(0)
   tokenVersion      Int      @default(0)
   
+  // Profile & Settings
+  avatarUrl         String?
+  advisorMode       String   @default("STANDARD") // STANDARD, CONSERVATIVE, AGGRESSIVE
+  aiInsightsFrequency String @default("DAILY")    // DAILY, WEEKLY, REALTIME
+  isBiometricsEnabled Boolean @default(false)
+  pushNotificationsEnabled Boolean @default(true)
+  
   refreshTokens     RefreshToken[]
   otpCodes          OtpCode[]
   devices           Device[]

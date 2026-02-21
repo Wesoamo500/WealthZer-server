@@ -11,6 +11,11 @@ export class AdvisorController {
     return this.advisorService.getChatHistory(data.userId);
   }
 
+  @MessagePattern({ cmd: 'clear-chat-history' })
+  async clearChatHistory(@Payload() data: { userId: string }) {
+    return this.advisorService.clearChatHistory(data.userId);
+  }
+
   @MessagePattern({ cmd: 'ask-advisor' })
   async askAdvisor(@Payload() data: { userId: string, question: string }) {
     return this.advisorService.askAdvisor(data.userId, data.question);

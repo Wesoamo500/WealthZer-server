@@ -16,4 +16,9 @@ export class AdvisorController {
   async askAdvisor(@User('userId') userId: string, @Body('question') question: string) {
     return firstValueFrom(this.advisorClient.send({ cmd: 'ask-advisor' }, { userId, question }));
   }
+
+  @Post('clear-history')
+  async clearChatHistory(@User('userId') userId: string) {
+    return firstValueFrom(this.advisorClient.send({ cmd: 'clear-chat-history' }, { userId }));
+  }
 }

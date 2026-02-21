@@ -93,3 +93,27 @@ export class ResetPasswordDto {
   @MinLength(8)
   newPassword: string;
 }
+
+export class UpdateUserDto {
+  @IsOptional()
+  @IsString()
+  fullName?: string;
+
+  @IsOptional()
+  @IsString()
+  avatarUrl?: string;
+
+  @IsOptional()
+  @IsString()
+  advisorMode?: string;
+
+  @IsOptional()
+  @IsString()
+  aiInsightsFrequency?: string;
+
+  @IsOptional()
+  isBiometricsEnabled?: boolean;
+
+  @IsOptional()
+  pushNotificationsEnabled?: boolean;
+}

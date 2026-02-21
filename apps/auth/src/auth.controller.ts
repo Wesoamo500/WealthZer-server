@@ -46,4 +46,14 @@ export class AuthController {
   async resetPassword(@Payload() dto: ResetPasswordDto) {
     return this.authService.resetPassword(dto);
   }
+
+  @MessagePattern({ cmd: 'get-profile' })
+  async getProfile(@Payload() data: { userId: string }) {
+    return this.authService.getProfile(data.userId);
+  }
+
+  @MessagePattern({ cmd: 'update-profile' })
+  async updateProfile(@Payload() data: { userId: string; dto: any }) {
+    return this.authService.updateProfile(data.userId, data.dto);
+  }
 }
