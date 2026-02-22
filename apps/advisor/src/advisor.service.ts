@@ -74,8 +74,8 @@ export class AdvisorService {
       }
 
       if (!usedProvider) {
-        // All failed, check for simulated
-        return this.saveSimulatedResponse(userId, question);
+        // All failed, use professional fallback
+        return this.saveFallbackResponse(userId, question);
       }
 
       // 4. Save and Return Response
@@ -130,8 +130,8 @@ export class AdvisorService {
 
       if (!insight) {
         return {
-          title: "Insight Unavailable",
-          description: "We couldn't generate a fresh insight right now. Check your API keys!",
+          title: "Market Analysis Paused",
+          description: "We're currently updating our market data models. A fresh insight will be available shortly.",
           action: "Retry"
         };
       }
@@ -184,13 +184,18 @@ export class AdvisorService {
     return context;
   }
 
-  private async saveSimulatedResponse(userId: string, question: string) {
-    let response = "I'm a simulated version of Finner AI. Please provide a GEMINI_API_KEY in your backend/.env file to chat with your real data!";
+  private async saveFallbackResponse(userId: string, question: string) {
+    const defaultResponse = "WealthZer AI is currently processing a high volume of requests. While I'm temporarily offline, remember that consistent budgeting and regular portfolio reviews are key to long-term financial health. Please try your question again in a moment!";
     
-    if (question.toLowerCase().includes('save')) {
-      response = "To save more, consider setting a limit on 'Entertainment' and 'Dining' categories.";
-    } else if (question.toLowerCase().includes('invest')) {
-      response = "Your portfolio is currently 80% Crypto. Diversifying into some low-cost index funds could reduce your risk.";
+    let response = defaultResponse;
+    const lowerQuestion = question.toLowerCase();
+
+    if (lowerQuestion.includes('save') || lowerQuestion.includes('budget') || lowerQuestion.includes('spend')) {
+      response = "I'm having trouble connecting to my analysis engine right now. General tip: Tracking every expense, no matter how small, is the first step toward a healthier budget. WealthZer's budget tools can help you identify areas where you can optimize your spending.";
+    } else if (lowerQuestion.includes('invest') || lowerQuestion.includes('portfolio') || lowerQuestion.includes('asset')) {
+      response = "My detailed investment analysis is temporarily unavailable. A common professional strategy is maintaining a diversified portfolio across different asset classes to manage risk effectively. Check your Portfolio tab for a breakdown of your current holdings.";
+    } else if (lowerQuestion.includes('hello') || lowerQuestion.includes('hi') || lowerQuestion.includes('hey')) {
+      response = "Hello! I'm WealthZer AI, your personal financial assistant. I'm currently undergoing some quick maintenance, but I'll be back shortly to analyze your finances and provide personalized advice. How can I assist you in the meantime?";
     }
 
     return this.prisma.aiChatHistory.create({
