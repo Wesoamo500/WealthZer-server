@@ -293,4 +293,34 @@ export class FinancialService {
       savingsRate: Math.round(savingsRate),
     };
   }
+
+  // --- Exchange Rate Cache ---
+  private cachedRates: { rates: Record<string, number>; fetchedAt: number } | null = null;
+  private readonly CACHE_TTL = 60 * 60 * 1000; // 1 hour
+
+  async getExchangeRates(baseCurrency: string = 'USD') {
+    // Return cached rates if fresh
+    if (this.cachedRates && (Date.now() - this.cachedRates.fetchedAt) < this.CACHE_TTL) {
+      return this.cachedRates.rates;
+    }
+
+    try {
+      const response = await fetch(`https://open.er-api.com/v6/latest/${baseCurrency}`);
+      const data = await response.json();
+
+      if (data.result === 'success') {
+        this.cachedRates = { rates: data.rates, fetchedAt: Date.now() };
+        return data.rates;
+      }
+
+      throw new Error('Exchange rate API returned an error');
+    } catch (error) {
+      // Return fallback rates if API fails
+      return {
+        USD: 1, EUR: 0.92, GBP: 0.79, NGN: 1550, JPY: 149.5,
+        CAD: 1.36, AUD: 1.53, CHF: 0.88, CNY: 7.24, INR: 83.1,
+        BRL: 4.97, ZAR: 18.5, AED: 3.67, SAR: 3.75, KES: 153,
+      };
+    }
+  }
 }

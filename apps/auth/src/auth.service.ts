@@ -390,6 +390,7 @@ export class AuthService {
         aiInsightsFrequency: true,
         isBiometricsEnabled: true,
         pushNotificationsEnabled: true,
+        preferredCurrency: true,
         createdAt: true,
       } as any,
     });
@@ -411,6 +412,7 @@ export class AuthService {
         aiInsightsFrequency: dto.aiInsightsFrequency,
         isBiometricsEnabled: dto.isBiometricsEnabled,
         pushNotificationsEnabled: dto.pushNotificationsEnabled,
+        preferredCurrency: dto.preferredCurrency,
       } as any,
     });
 
@@ -423,6 +425,7 @@ export class AuthService {
       aiInsightsFrequency: (user as any).aiInsightsFrequency,
       isBiometricsEnabled: (user as any).isBiometricsEnabled,
       pushNotificationsEnabled: (user as any).pushNotificationsEnabled,
+      preferredCurrency: (user as any).preferredCurrency,
     };
   }
 }
