@@ -116,4 +116,8 @@ export class UpdateUserDto {
 
   @IsOptional()
   pushNotificationsEnabled?: boolean;
+
+  @IsOptional()
+  @IsString()
+  preferredCurrency?: string;
 }
