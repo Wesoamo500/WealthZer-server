@@ -1,10 +1,14 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../auth/src/prisma/prisma.service'; // Adjust path if needed or use a shared prisma service
 import { CreateTransactionDto, CreateAssetDto, UpdateAssetValueDto, CreateBudgetDto, TransactionCategory } from '@wealthzer/shared';
+import { PriceService } from './price.service';
 
 @Injectable()
 export class FinancialService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly priceService: PriceService,
+  ) {}
 
   async createTransaction(userId: string, dto: CreateTransactionDto) {
     return this.prisma.transaction.create({
@@ -31,6 +35,43 @@ export class FinancialService {
   async getPortfolio(userId: string) {
     return this.prisma.portfolioAsset.findMany({
       where: { userId },
+    });
+  }
+
+  async getPortfolioWithPrices(userId: string) {
+    const assets = await this.prisma.portfolioAsset.findMany({
+      where: { userId },
+    });
+
+    if (assets.length === 0) return [];
+
+    const priceMap = await this.priceService.getBatchPrices(
+      assets.map(a => ({ symbol: a.symbol, type: a.type }))
+    );
+
+    return assets.map(asset => {
+      const currentPrice = priceMap.get(asset.symbol) || 0;
+      const purchasePrice = Number(asset.purchasePrice);
+      const amount = Number(asset.amount);
+      
+      const currentValue = currentPrice * amount;
+      const purchaseValue = purchasePrice * amount;
+      const gainLoss = currentValue - purchaseValue;
+      const gainLossPercent = purchaseValue > 0 ? (gainLoss / purchaseValue) * 100 : 0;
+      
+      return {
+        id: asset.id,
+        name: asset.name,
+        symbol: asset.symbol,
+        type: asset.type,
+        amount: amount,
+        purchasePrice: purchasePrice,
+        currentPrice: currentPrice,
+        currentValue: currentValue,
+        purchaseValue: purchaseValue,
+        gainLoss: gainLoss,
+        gainLossPercent: gainLossPercent,
+      };
     });
   }
 
@@ -97,19 +138,52 @@ export class FinancialService {
       this.prisma.budget.findMany({ where: { userId } }),
     ]);
 
-    // 1. Calculate Investment Value
-    const totalInvestments = assets.reduce((sum, asset) => {
-      const value = asset.currentValue ? Number(asset.currentValue) : Number(asset.purchasePrice);
-      return sum + (value * Number(asset.amount));
-    }, 0);
+    // Fetch real-time prices for all assets
+    const priceMap = await this.priceService.getBatchPrices(
+      assets.map(a => ({ symbol: a.symbol, type: a.type }))
+    );
 
-    // 2. Calculate Cash and Credit balances from transactions
-    // Sum of all transactions (Income is +, Expenses are -)
+    // Calculate Investment Value with real-time prices
+    let totalInvestments = 0;
+    let totalGainLoss = 0;
+    
+    const assetsWithPrices = assets.map(asset => {
+      const currentPrice = priceMap.get(asset.symbol) || 0;
+      const purchasePrice = Number(asset.purchasePrice);
+      const amount = Number(asset.amount);
+      
+      const currentValue = currentPrice * amount;
+      const purchaseValue = purchasePrice * amount;
+      const gainLoss = currentValue - purchaseValue;
+      const gainLossPercent = purchaseValue > 0 ? (gainLoss / purchaseValue) * 100 : 0;
+      
+      totalInvestments += currentValue;
+      totalGainLoss += gainLoss;
+      
+      return {
+        id: asset.id,
+        name: asset.name,
+        symbol: asset.symbol,
+        type: asset.type,
+        amount: amount,
+        purchasePrice: purchasePrice,
+        currentPrice: currentPrice,
+        currentValue: currentValue,
+        purchaseValue: purchaseValue,
+        gainLoss: gainLoss,
+        gainLossPercent: gainLossPercent,
+      };
+    });
+
+    // Calculate overall portfolio gain/loss percentage
+    const totalPurchaseValue = assetsWithPrices.reduce((sum, a) => sum + a.purchaseValue, 0);
+    const totalGainLossPercent = totalPurchaseValue > 0 ? (totalGainLoss / totalPurchaseValue) * 100 : 0;
+
+    // Calculate Cash and Credit balances from transactions
     const transactionBalance = transactions.reduce((sum, t) => sum + Number(t.amount), 0);
-
     const totalNetWorth = totalInvestments + transactionBalance;
 
-    // 3. Current Month Stats
+    // Current Month Stats
     const currentMonthTransactions = transactions.filter(t => t.date >= startOfMonth);
     const totalIncome = currentMonthTransactions
       .filter(t => t.category === 'INCOME')
@@ -118,7 +192,7 @@ export class FinancialService {
       .filter(t => t.category !== 'INCOME')
       .reduce((sum, t) => sum + Number(t.amount), 0);
 
-    // 4. Budget Progress
+    // Budget Progress
     const budgetsWithProgress = budgets.map(budget => {
       const spent = currentMonthTransactions
         .filter(t => t.category === budget.category)
@@ -131,24 +205,24 @@ export class FinancialService {
       };
     });
 
-    // 5. Daily Trend Calculation
+    // Daily Trend Calculation
     const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     const todaysTransactions = currentMonthTransactions.filter(t => t.date >= startOfToday);
-    
-    // Sum of all transactions today
     const dailyChange = todaysTransactions.reduce((sum, t) => sum + Number(t.amount), 0);
-
     const prevNetWorth = totalNetWorth - dailyChange;
     const dailyChangePercent = prevNetWorth !== 0 ? (dailyChange / prevNetWorth) * 100 : 0;
 
     return {
       totalNetWorth,
       totalInvestments,
+      totalGainLoss,
+      totalGainLossPercent,
       totalIncome,
       totalExpenses,
       dailyChange,
       dailyChangePercent,
       budgets: budgetsWithProgress,
+      assets: assetsWithPrices,
       currency: 'USD',
     };
   }

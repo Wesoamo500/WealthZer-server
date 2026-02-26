@@ -19,7 +19,7 @@ export class FinancialController {
 
   @MessagePattern({ cmd: 'get-portfolio' })
   async getPortfolio(@Payload() data: { userId: string }) {
-    return this.financialService.getPortfolio(data.userId);
+    return this.financialService.getPortfolioWithPrices(data.userId);
   }
 
   @MessagePattern({ cmd: 'add-asset' })
