@@ -33,6 +33,11 @@ export class FinancialController {
     return firstValueFrom(this.financialClient.send({ cmd: 'get-net-worth' }, { userId }));
   }
 
+  @Get('health-score')
+  async getHealthScore(@User('userId') userId: string) {
+    return firstValueFrom(this.financialClient.send({ cmd: 'get-health-score' }, { userId }));
+  }
+
   @Post('budgets')
   async createBudget(@User('userId') userId: string, @Body() dto: CreateBudgetDto) {
     return firstValueFrom(this.financialClient.send({ cmd: 'create-budget' }, { userId, dto }));

@@ -41,4 +41,9 @@ export class FinancialController {
   async getNetWorth(@Payload() data: { userId: string }) {
     return this.financialService.getNetWorth(data.userId);
   }
+
+  @MessagePattern({ cmd: 'get-health-score' })
+  async getHealthScore(@Payload() data: { userId: string }) {
+    return this.financialService.getHealthScore(data.userId);
+  }
 }
