@@ -155,3 +155,15 @@ model Budget {
 
   @@map("budgets")
 }
+
+model AssetPrice {
+  id              String   @id @default(uuid())
+  symbol          String
+  type            String   // CRYPTO, STOCK
+  price           Decimal
+  fetchedAt       DateTime @default(now())
+  
+  @@unique([symbol, type])
+  @@index([symbol, type, fetchedAt])
+  @@map("asset_prices")
+}
