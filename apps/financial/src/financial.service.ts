@@ -238,6 +238,11 @@ export class FinancialService {
       this.prisma.budget.findMany({ where: { userId } }),
     ]);
 
+    // Fetch real-time prices for assets
+    const priceMap = await this.priceService.getBatchPrices(
+      assets.map(a => ({ symbol: a.symbol, type: a.type }))
+    );
+
     // Current month transactions
     const currentMonthTxns = transactions.filter(t => t.date >= startOfMonth);
     const lastMonthTxns = transactions.filter(t => t.date >= startOfLastMonth && t.date < startOfMonth);
@@ -257,7 +262,6 @@ export class FinancialService {
       .reduce((sum, t) => sum + Number(t.amount), 0));
 
     // --- PILLAR 1: Savings Rate (20 pts) ---
-    // Target: >=20% savings rate = full marks
     let savingsRateScore = 0;
     let savingsRate = 0;
     if (totalIncome > 0) {
@@ -265,7 +269,6 @@ export class FinancialService {
       savingsRateScore = Math.min(Math.max(savingsRate / 20, 0), 1) * 20;
     }
 
-    // Last month comparison
     let lastMonthSavingsRate = 0;
     if (lastMonthIncome > 0) {
       lastMonthSavingsRate = ((lastMonthIncome - lastMonthExpenses) / lastMonthIncome) * 100;
@@ -280,14 +283,13 @@ export class FinancialService {
           .filter(t => t.category === budget.category)
           .reduce((sum, t) => sum + Number(t.amount), 0));
         const usage = Number(budget.amount) > 0 ? (spent / Number(budget.amount)) * 100 : 0;
-        // Under 80% = full, 80-100% = partial, over 100% = 0
         if (usage <= 80) return 20;
         if (usage <= 100) return 20 * (1 - (usage - 80) / 20);
         return 0;
       });
       budgetScore = budgetScores.reduce((a, b) => a + b, 0) / budgetScores.length;
     } else {
-      budgetScore = 5; // Partial credit for no budgets (encourage setting them up)
+      budgetScore = 5;
     }
 
     // --- PILLAR 3: Portfolio Diversification (20 pts) ---
@@ -302,7 +304,6 @@ export class FinancialService {
     } else if (cashFlow === 0) {
       cashFlowScore = 10;
     } else {
-      // Negative: scale down from 10 to 0 based on severity
       const severity = Math.min(Math.abs(cashFlow) / (totalIncome || 1), 1);
       cashFlowScore = Math.max(10 * (1 - severity), 0);
     }
@@ -312,10 +313,13 @@ export class FinancialService {
     if (budgets.length > 0) activityScore += 5;
     if (assets.length > 0) activityScore += 5;
     if (transactions.length > 0) activityScore += 5;
-    const totalNetWorth = assets.reduce((sum, a) => {
-      const val = a.currentValue ? Number(a.currentValue) : Number(a.purchasePrice);
-      return sum + (val * Number(a.amount));
-    }, 0) + transactions.reduce((sum, t) => sum + Number(t.amount), 0);
+    
+    // Calculate net worth with real-time prices
+    const totalInvestments = assets.reduce((sum, a) => {
+      const currentPrice = priceMap.get(a.symbol) || 0;
+      return sum + (currentPrice * Number(a.amount));
+    }, 0);
+    const totalNetWorth = totalInvestments + transactions.reduce((sum, t) => sum + Number(t.amount), 0);
     if (totalNetWorth > 0) activityScore += 5;
 
     // --- TOTAL SCORE ---
@@ -323,13 +327,11 @@ export class FinancialService {
       Math.min(Math.max(savingsRateScore + budgetScore + diversificationScore + cashFlowScore + activityScore, 0), 100)
     );
 
-    // Grade
     let grade = 'Poor';
     if (totalScore >= 80) grade = 'Excellent';
     else if (totalScore >= 60) grade = 'Good';
     else if (totalScore >= 40) grade = 'Fair';
 
-    // Pillars breakdown
     const pillars = [
       { name: 'Savings Rate', score: Math.round(savingsRateScore), max: 20 },
       { name: 'Budget Adherence', score: Math.round(budgetScore), max: 20 },
@@ -338,7 +340,6 @@ export class FinancialService {
       { name: 'Activity', score: Math.round(activityScore), max: 20 },
     ];
 
-    // Find weakest pillar for tip
     const weakest = pillars.reduce((min, p) => (p.score / p.max) < (min.score / min.max) ? p : min, pillars[0]);
     const tips: Record<string, string> = {
       'Savings Rate': 'Try to save at least 20% of your monthly income. Even small increases compound over time!',
@@ -348,7 +349,6 @@ export class FinancialService {
       'Activity': 'Set up budgets, add assets, and track transactions to get a more complete financial picture.',
     };
 
-    // Comparison text
     let comparisonText = '';
     if (savingsRateChange > 0) {
       comparisonText = `Your savings rate is ${Math.abs(Math.round(savingsRateChange))}% higher than last month. Keep it up!`;
