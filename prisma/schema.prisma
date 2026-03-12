@@ -35,7 +35,7 @@ model User {
   avatarUrl         String?
   advisorMode       String   @default("STANDARD") // STANDARD, CONSERVATIVE, AGGRESSIVE
   aiInsightsFrequency String @default("DAILY")    // DAILY, WEEKLY, REALTIME
-  preferredCurrency   String @default("USD")       // USD, EUR, GBP, NGN, JPY, etc.
+  preferredCurrency   String @default("GHS")       // GHS, USD, EUR, GBP, NGN, JPY, etc.
   isBiometricsEnabled Boolean @default(false)
   pushNotificationsEnabled Boolean @default(true)
   

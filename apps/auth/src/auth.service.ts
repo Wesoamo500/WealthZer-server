@@ -373,6 +373,7 @@ export class AuthService {
         email: user.email,
         fullName: user.fullName,
         role: user.role,
+        preferredCurrency: user.preferredCurrency,
       },
     };
   }
