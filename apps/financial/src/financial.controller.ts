@@ -51,4 +51,9 @@ export class FinancialController {
   async getExchangeRates(@Payload() data: { baseCurrency?: string }) {
     return this.financialService.getExchangeRates(data.baseCurrency);
   }
+
+  @MessagePattern({ cmd: 'get-historical-net-worth' })
+  async getHistoricalNetWorth(@Payload() data: { userId: string, period: string }) {
+    return this.financialService.getHistoricalNetWorth(data.userId, data.period);
+  }
 }

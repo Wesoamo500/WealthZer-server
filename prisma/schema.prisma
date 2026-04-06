@@ -47,6 +47,7 @@ model User {
   aiChatHistory     AiChatHistory[]
   budgets           Budget[]
   notifications     Notification[]
+  netWorthSnapshots NetWorthSnapshot[]
   
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
@@ -180,4 +181,18 @@ model Notification {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("notifications")
+}
+
+model NetWorthSnapshot {
+  id              String   @id @default(uuid())
+  userId          String
+  totalNetWorth   Decimal
+  totalInvestments Decimal
+  totalCash       Decimal
+  timestamp       DateTime @default(now())
+
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, timestamp])
+  @@map("net_worth_snapshots")
 }

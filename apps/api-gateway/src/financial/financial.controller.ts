@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Inject, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, Inject, UseGuards, Query } from '@nestjs/common';
 import { ClientProxy } from '@nestjs/microservices';
 import { CreateTransactionDto, CreateAssetDto, CreateBudgetDto } from '@wealthzer/shared';
 import { firstValueFrom } from 'rxjs';
@@ -51,5 +51,10 @@ export class FinancialController {
   @Get('budgets')
   async getBudgets(@User('userId') userId: string) {
     return firstValueFrom(this.financialClient.send({ cmd: 'get-budgets' }, { userId }));
+  }
+
+  @Get('historical-net-worth')
+  async getHistoricalNetWorth(@User('userId') userId: string, @Query('period') period: string) {
+    return firstValueFrom(this.financialClient.send({ cmd: 'get-historical-net-worth' }, { userId, period }));
   }
 }

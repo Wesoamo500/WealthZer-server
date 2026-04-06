@@ -251,7 +251,20 @@ export class FinancialService {
     const dailyChangePercent =
       prevNetWorth !== 0 ? (dailyChange / prevNetWorth) * 100 : 0;
 
-    return {
+    // Calculate Allocations for Chart
+    const allocationMap = new Map<string, number>();
+    assetsWithPrices.forEach((a) => {
+      const type = a.type.toUpperCase();
+      allocationMap.set(type, (allocationMap.get(type) || 0) + a.currentValue);
+    });
+
+    const allocations = Array.from(allocationMap.entries()).map(([type, value]) => ({
+      type,
+      value,
+      percentage: totalInvestments > 0 ? (value / totalInvestments) * 100 : 0,
+    }));
+
+    const result = {
       totalNetWorth,
       totalInvestments,
       totalGainLoss,
@@ -262,9 +275,82 @@ export class FinancialService {
       dailyChangePercent,
       budgets: budgetsWithProgress.map(b => ({ ...b, emoji: this.getCategoryEmoji(b.category) })),
       assets: assetsWithPrices,
-      currency: "USD",
+      allocations,
+      currency: "GHS", // Default to GHS as per user preference in history
       updatedAt: now,
     };
+
+    // Auto-create snapshot if one doesn't exist for today (simplified trigger)
+    this.createNetWorthSnapshot(userId, {
+      totalNetWorth,
+      totalInvestments,
+      totalCash: transactionBalance,
+    }).catch(err => console.error('Snapshot failed:', err));
+
+    return result;
+  }
+
+  async createNetWorthSnapshot(userId: string, stats: { totalNetWorth: number; totalInvestments: number; totalCash: number }) {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const existing = await this.prisma.netWorthSnapshot.findFirst({
+      where: {
+        userId,
+        timestamp: {
+          gte: today,
+        },
+      },
+    });
+
+    if (existing) return; // Only one snapshot per day
+
+    return this.prisma.netWorthSnapshot.create({
+      data: {
+        userId,
+        totalNetWorth: stats.totalNetWorth,
+        totalInvestments: stats.totalInvestments,
+        totalCash: stats.totalCash,
+      },
+    });
+  }
+
+  async getHistoricalNetWorth(userId: string, period: string = '1M') {
+    const now = new Date();
+    let startDate: Date;
+
+    const safePeriod = (period || '1M').toUpperCase();
+    switch (safePeriod) {
+      case '1W':
+        startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+        break;
+      case '1M':
+        startDate = new Date(now.getFullYear(), now.getMonth() - 1, now.getDate());
+        break;
+      case '1Y':
+        startDate = new Date(now.getFullYear() - 1, now.getMonth(), now.getDate());
+        break;
+      case 'ALL':
+        startDate = new Date(2020, 0, 1);
+        break;
+      case '1D':
+      default:
+        // For 1D, we return today's snapshots if any, or just the current value
+        startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        break;
+    }
+
+    return this.prisma.netWorthSnapshot.findMany({
+      where: {
+        userId,
+        timestamp: {
+          gte: startDate,
+        },
+      },
+      orderBy: {
+        timestamp: 'asc',
+      },
+    });
   }
 
   async getHealthScore(userId: string) {
