@@ -129,9 +129,22 @@ export class FinancialService {
   }
 
   async getBudgets(userId: string) {
-    return this.prisma.budget.findMany({
+    const budgets = await this.prisma.budget.findMany({
       where: { userId },
     });
+    return budgets.map(b => ({
+      ...b,
+      emoji: this.getCategoryEmoji(b.category)
+    }));
+  }
+
+  private getCategoryEmoji(category: string): string {
+    const map: Record<string, string> = {
+      'DINING': '🍽', 'GROCERIES': '🛒', 'TRANSPORT': '🚗',
+      'FUN': '🎉', 'SHOPPING': '🛍', 'RENT': '🏠',
+      'UTILITIES': '⚡', 'INCOME': '💰', 'OTHERS': '📦'
+    };
+    return map[category] || '💰';
   }
 
   async getNetWorth(userId: string) {
@@ -247,9 +260,10 @@ export class FinancialService {
       totalExpenses,
       dailyChange,
       dailyChangePercent,
-      budgets: budgetsWithProgress,
+      budgets: budgetsWithProgress.map(b => ({ ...b, emoji: this.getCategoryEmoji(b.category) })),
       assets: assetsWithPrices,
       currency: "USD",
+      updatedAt: now,
     };
   }
 
@@ -317,13 +331,20 @@ export class FinancialService {
       pillars[0],
     );
 
+    // Calculate delta (simplified: 1/4 of savings rate change as a placeholder for total score delta)
+    const scoreDelta = Math.round(savingsRateScore.change / 4);
+    const tipsCount = pillars.filter(p => p.score < p.max * 0.7).length;
+
     return {
       score: totalScore,
       grade,
+      scoreDelta,
+      tipsCount,
       pillars,
       tip: this.getTip(weakest.name),
       comparisonText: this.getComparisonText(savingsRateScore.change),
       savingsRate: Math.round(savingsRateScore.rate),
+      updatedAt: new Date(),
     };
   }
 

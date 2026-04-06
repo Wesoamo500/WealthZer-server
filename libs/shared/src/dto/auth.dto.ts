@@ -9,6 +9,25 @@ export class RegisterDto {
   @MinLength(8)
   password: string;
 
+  @IsNotEmpty()
+  @IsString()
+  firstName: string;
+
+  @IsNotEmpty()
+  @IsString()
+  lastName: string;
+
+  @IsNotEmpty()
+  @IsString()
+  confirmPassword: string;
+
+  @IsOptional()
+  acceptTerms?: boolean;
+
+  @IsNotEmpty()
+  @IsString()
+  currency: string;
+
   @IsOptional()
   @IsString()
   fullName?: string;

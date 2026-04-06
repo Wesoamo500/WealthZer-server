@@ -74,12 +74,14 @@ export class AuthService {
     }
 
     const passwordHash = await argon2.hash(registerDto.password);
+    const fullName = registerDto.fullName || `${registerDto.firstName} ${registerDto.lastName}`.trim();
 
     const user = await this.prisma.user.create({
       data: {
         email: registerDto.email,
         passwordHash,
-        fullName: registerDto.fullName,
+        fullName,
+        preferredCurrency: registerDto.currency || 'GHS',
       },
     });
 

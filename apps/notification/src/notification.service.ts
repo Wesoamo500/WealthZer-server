@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { EmailProvider } from './providers/email.provider';
 import { SmsProvider } from './providers/sms.provider';
+import { PrismaService } from '../../auth/src/prisma/prisma.service';
 
 @Injectable()
 export class NotificationService {
@@ -9,8 +10,15 @@ export class NotificationService {
   constructor(
     private readonly emailProvider: EmailProvider,
     private readonly smsProvider: SmsProvider,
+    private readonly prisma: PrismaService,
   ) {
     console.log('[NotificationService] Initialized');
+  }
+
+  async getUnreadCount(userId: string): Promise<number> {
+    return this.prisma.notification.count({
+      where: { userId, isRead: false },
+    });
   }
 
   async sendEmail(to: string, subject: string, body: string) {
