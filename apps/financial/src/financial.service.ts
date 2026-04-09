@@ -264,6 +264,13 @@ export class FinancialService {
       percentage: totalInvestments > 0 ? (value / totalInvestments) * 100 : 0,
     }));
 
+    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    const daysRemaining = Math.max(0, endOfMonth.getDate() - now.getDate());
+
+    const totalBudgetLimit = budgetsWithProgress.reduce((sum, b) => sum + Number(b.amount), 0);
+    const totalBudgetSpent = budgetsWithProgress.reduce((sum, b) => sum + b.spent, 0);
+    const onTrackCount = budgetsWithProgress.filter(b => b.progress <= 100).length;
+
     const result = {
       totalNetWorth,
       totalInvestments,
@@ -276,8 +283,16 @@ export class FinancialService {
       budgets: budgetsWithProgress.map(b => ({ ...b, emoji: this.getCategoryEmoji(b.category) })),
       assets: assetsWithPrices,
       allocations,
-      currency: "GHS", // Default to GHS as per user preference in history
+      currency: "GHS",
       updatedAt: now,
+      budgetSummary: {
+        month: now.toLocaleDateString('en-US', { month: 'long', year: 'numeric' }),
+        totalSpent: totalBudgetSpent,
+        totalLimit: totalBudgetLimit,
+        onTrackCount,
+        totalCategories: budgets.length,
+        daysRemaining
+      }
     };
 
     // Auto-create snapshot if one doesn't exist for today (simplified trigger)

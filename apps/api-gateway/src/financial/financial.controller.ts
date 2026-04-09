@@ -57,4 +57,48 @@ export class FinancialController {
   async getHistoricalNetWorth(@User('userId') userId: string, @Query('period') period: string) {
     return firstValueFrom(this.financialClient.send({ cmd: 'get-historical-net-worth' }, { userId, period }));
   }
+
+  // ── Market Data ───────────────────────────────────────────
+  @Get('markets')
+  async getMarketTickers(@Query('category') category?: string) {
+    return firstValueFrom(this.financialClient.send({ cmd: 'get-market-tickers' }, { category }));
+  }
+
+  @Get('markets/search')
+  async searchTickers(@Query('q') query: string) {
+    return firstValueFrom(this.financialClient.send({ cmd: 'search-tickers' }, { query }));
+  }
+
+  @Get('watchlist')
+  async getWatchlist(@User('userId') userId: string) {
+    return firstValueFrom(this.financialClient.send({ cmd: 'get-watchlist' }, { userId }));
+  }
+
+  @Post('watchlist/toggle')
+  async toggleWatchlist(
+    @User('userId') userId: string,
+    @Body() dto: { symbol: string; type: string },
+  ) {
+    return firstValueFrom(
+      this.financialClient.send({ cmd: 'toggle-watchlist' }, { userId, ...dto }),
+    );
+  }
+
+  @Get('markets/detail')
+  async getTickerDetail(@Query('symbol') symbol: string, @Query('type') type: string) {
+    return firstValueFrom(
+      this.financialClient.send({ cmd: 'get-ticker-detail' }, { symbol, type }),
+    );
+  }
+
+  @Get('markets/history')
+  async getMarketHistory(
+    @Query('symbol') symbol: string,
+    @Query('type') type: string,
+    @Query('period') period?: string,
+  ) {
+    return firstValueFrom(
+      this.financialClient.send({ cmd: 'get-market-history' }, { symbol, type, period }),
+    );
+  }
 }

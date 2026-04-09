@@ -48,6 +48,7 @@ model User {
   budgets           Budget[]
   notifications     Notification[]
   netWorthSnapshots NetWorthSnapshot[]
+  watchlists        Watchlist[]
   
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
@@ -159,15 +160,36 @@ model Budget {
 }
 
 model AssetPrice {
-  id              String   @id @default(uuid())
-  symbol          String
-  type            String   // CRYPTO, STOCK
-  price           Decimal
-  fetchedAt       DateTime @default(now())
-  
+  id               String   @id @default(uuid())
+  symbol           String
+  type             String   // CRYPTO, STOCK
+  name             String?  // "Bitcoin", "Apple Inc."
+  price            Decimal
+  change24h        Decimal? // Absolute change
+  changePercent24h Decimal? // Percentage change
+  marketCap        String?  // Pre-formatted: "$1.31T"
+  volume24h        String?  // Pre-formatted: "$32B"
+  sparkline7d      String?  // JSON array of ~8 price points
+  rank             Int?     // Market rank
+  color            String?  // Brand color hex
+  fetchedAt        DateTime @default(now())
+
   @@unique([symbol, type])
   @@index([symbol, type, fetchedAt])
   @@map("asset_prices")
+}
+
+model Watchlist {
+  id        String   @id @default(uuid())
+  userId    String
+  symbol    String
+  type      String   // CRYPTO, STOCK
+  addedAt   DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, symbol, type])
+  @@map("watchlists")
 }
 
 model Notification {
@@ -196,3 +218,15 @@ model NetWorthSnapshot {
   @@index([userId, timestamp])
   @@map("net_worth_snapshots")
 }
+
+model MarketHistory {
+  id        String   @id @default(uuid())
+  symbol    String
+  type      String   // CRYPTO, STOCK
+  price     Decimal
+  timestamp DateTime @default(now())
+
+  @@index([symbol, type, timestamp])
+  @@map("market_history")
+}
+

@@ -61,9 +61,20 @@ export class PriceSyncService implements OnModuleInit {
                 fetchedAt: new Date(),
               },
             });
+
+            // Record history snapshot for user-held assets
+            await this.prisma.marketHistory.create({
+              data: {
+                symbol: asset.symbol.toUpperCase(),
+                type: asset.type.toUpperCase(),
+                price: price,
+              },
+            }).catch(err => this.logger.error(`History record failed for ${asset.symbol}:`, err));
+
             this.logger.log(
               `Updated ${asset.symbol} (${asset.type}): $${price}`,
             );
+
           }
         } catch (error) {
           this.logger.error(`Failed to sync ${asset.symbol}:`, error);
