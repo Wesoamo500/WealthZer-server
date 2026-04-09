@@ -1,7 +1,7 @@
 import { Controller } from '@nestjs/common';
 import { MessagePattern, Payload } from '@nestjs/microservices';
 import { AuthService } from './auth.service';
-import { RegisterDto, LoginDto, SocialLoginDto, TwoFactorVerifyDto, ForgotPasswordDto, VerifyResetOtpDto, ResetPasswordDto } from '@wealthzer/shared';
+import { RegisterDto, LoginDto, SocialLoginDto, TwoFactorVerifyDto, ForgotPasswordDto, VerifyResetOtpDto, ResetPasswordDto, RefreshTokenDto } from '@wealthzer/shared';
 
 @Controller()
 export class AuthController {
@@ -55,5 +55,10 @@ export class AuthController {
   @MessagePattern({ cmd: 'update-profile' })
   async updateProfile(@Payload() data: { userId: string; dto: any }) {
     return this.authService.updateProfile(data.userId, data.dto);
+  }
+
+  @MessagePattern({ cmd: 'refresh-token' })
+  async refreshToken(@Payload() dto: RefreshTokenDto) {
+    return this.authService.refreshToken(dto);
   }
 }

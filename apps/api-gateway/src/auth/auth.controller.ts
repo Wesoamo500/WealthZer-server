@@ -1,6 +1,6 @@
 import { Controller, Post, Get, Patch, Body, Inject } from '@nestjs/common';
 import { ClientProxy } from '@nestjs/microservices';
-import { RegisterDto, LoginDto, TwoFactorVerifyDto, SocialLoginDto, Public, ForgotPasswordDto, VerifyResetOtpDto, ResetPasswordDto, UpdateUserDto } from '@wealthzer/shared';
+import { RegisterDto, LoginDto, TwoFactorVerifyDto, SocialLoginDto, Public, ForgotPasswordDto, VerifyResetOtpDto, ResetPasswordDto, UpdateUserDto, RefreshTokenDto } from '@wealthzer/shared';
 import { firstValueFrom } from 'rxjs';
 import { User } from './user.decorator';
 
@@ -64,5 +64,11 @@ export class AuthController {
   @Patch('profile')
   async updateProfile(@User('userId') userId: string, @Body() dto: UpdateUserDto) {
     return firstValueFrom(this.authClient.send({ cmd: 'update-profile' }, { userId, dto }));
+  }
+
+  @Public()
+  @Post('refresh')
+  async refresh(@Body() dto: RefreshTokenDto) {
+    return firstValueFrom(this.authClient.send({ cmd: 'refresh-token' }, dto));
   }
 }

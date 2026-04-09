@@ -140,3 +140,9 @@ export class UpdateUserDto {
   @IsString()
   preferredCurrency?: string;
 }
+
+export class RefreshTokenDto {
+  @IsNotEmpty()
+  @IsString()
+  refreshToken: string;
+}

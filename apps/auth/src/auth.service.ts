@@ -2,7 +2,7 @@ import { Injectable, UnauthorizedException, ConflictException, Inject } from '@n
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from './prisma/prisma.service';
-import { RegisterDto, LoginDto, TwoFactorVerifyDto, SocialLoginDto, SocialProvider, ForgotPasswordDto, VerifyResetOtpDto, ResetPasswordDto } from '@wealthzer/shared';
+import { RegisterDto, LoginDto, TwoFactorVerifyDto, SocialLoginDto, SocialProvider, ForgotPasswordDto, VerifyResetOtpDto, ResetPasswordDto, RefreshTokenDto } from '@wealthzer/shared';
 import * as argon2 from 'argon2';
 import { OAuth2Client } from 'google-auth-library';
 import { ClientProxy } from '@nestjs/microservices';
@@ -430,5 +430,57 @@ export class AuthService {
       pushNotificationsEnabled: (user as any).pushNotificationsEnabled,
       preferredCurrency: (user as any).preferredCurrency,
     };
+  }
+
+  async refreshToken(dto: RefreshTokenDto) {
+    try {
+      // 1. Verify the refresh token
+      const payload = await this.jwtService.verifyAsync(dto.refreshToken);
+      
+      // 2. Find the user
+      const user = await this.prisma.user.findUnique({
+        where: { id: payload.userId },
+        include: { refreshTokens: { where: { status: 'ACTIVE' } } }
+      });
+
+      if (!user) throw new UnauthorizedException('User not found');
+
+      // 3. Find the matching token in DB
+      let matchedTokenId: string | null = null;
+      for (const token of user.refreshTokens) {
+        const isValid = await argon2.verify(token.tokenHash, dto.refreshToken);
+        if (isValid) {
+          matchedTokenId = token.id;
+          break;
+        }
+      }
+
+      if (!matchedTokenId) {
+        throw new UnauthorizedException('Invalid refresh token');
+      }
+
+      // 4. Check if expired (DB check)
+      const tokenRecord = user.refreshTokens.find(t => t.id === matchedTokenId);
+      if (tokenRecord.expiresAt < new Date()) {
+        await this.prisma.refreshToken.update({
+          where: { id: matchedTokenId },
+          data: { status: 'EXPIRED' }
+        });
+        throw new UnauthorizedException('Refresh token expired');
+      }
+
+      // 5. Rotate: Mark old token as EXPIRED and generate new one
+      await this.prisma.refreshToken.update({
+        where: { id: matchedTokenId },
+        data: { status: 'EXPIRED', revokedAt: new Date() }
+      });
+
+      // 6. Generate new tokens
+      return this.generateTokens(user, tokenRecord.deviceId);
+
+    } catch (error) {
+      if (error instanceof UnauthorizedException) throw error;
+      throw new UnauthorizedException('Invalid refresh token');
+    }
   }
 }
