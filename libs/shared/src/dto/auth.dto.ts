@@ -139,6 +139,25 @@ export class UpdateUserDto {
   @IsOptional()
   @IsString()
   preferredCurrency?: string;
+
+  @IsOptional()
+  @IsString()
+  language?: string;
+
+  @IsOptional()
+  isPro?: boolean;
+
+  @IsOptional()
+  darkMode?: boolean;
+
+  @IsOptional()
+  budgetAlerts?: boolean;
+
+  @IsOptional()
+  priceAlerts?: boolean;
+
+  @IsOptional()
+  weeklyReport?: boolean;
 }
 
 export class RefreshTokenDto {

@@ -35,9 +35,16 @@ model User {
   avatarUrl         String?
   advisorMode       String   @default("STANDARD") // STANDARD, CONSERVATIVE, AGGRESSIVE
   aiInsightsFrequency String @default("DAILY")    // DAILY, WEEKLY, REALTIME
-  preferredCurrency   String @default("GHS")       // GHS, USD, EUR, GBP, NGN, JPY, etc.
+  preferredCurrency   String @default("GHS")
+  language            String @default("English")
+  isPro               Boolean @default(false)
+  proExpiresAt        DateTime?
+  darkMode            Boolean @default(false)
   isBiometricsEnabled Boolean @default(false)
   pushNotificationsEnabled Boolean @default(true)
+  budgetAlerts             Boolean @default(true)
+  priceAlerts              Boolean @default(false)
+  weeklyReport             Boolean @default(true)
   
   refreshTokens     RefreshToken[]
   otpCodes          OtpCode[]

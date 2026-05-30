@@ -51,6 +51,11 @@ export class FinancialController {
     return this.financialService.getHealthScore(data.userId);
   }
 
+  @MessagePattern({ cmd: 'get-profile-stats' })
+  async getProfileStats(@Payload() data: { userId: string }) {
+    return this.financialService.getProfileStats(data.userId);
+  }
+
   @MessagePattern({ cmd: 'get-exchange-rates' })
   async getExchangeRates(@Payload() data: { baseCurrency?: string }) {
     return this.financialService.getExchangeRates(data.baseCurrency);

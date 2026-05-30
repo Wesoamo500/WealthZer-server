@@ -81,7 +81,7 @@ export class AuthService {
         email: registerDto.email,
         passwordHash,
         fullName,
-        preferredCurrency: registerDto.currency || 'GHS',
+        preferredCurrency: registerDto.currency || 'GHS', // honour user's signup choice
       },
     });
 
@@ -375,7 +375,17 @@ export class AuthService {
         email: user.email,
         fullName: user.fullName,
         role: user.role,
+        avatarUrl: user.avatarUrl,
         preferredCurrency: user.preferredCurrency,
+        language: user.language,
+        isPro: user.isPro,
+        darkMode: user.darkMode,
+        isBiometricsEnabled: user.isBiometricsEnabled,
+        pushNotificationsEnabled: user.pushNotificationsEnabled,
+        budgetAlerts: user.budgetAlerts,
+        priceAlerts: user.priceAlerts,
+        weeklyReport: user.weeklyReport,
+        createdAt: user.createdAt,
       },
     };
   }
@@ -394,6 +404,13 @@ export class AuthService {
         isBiometricsEnabled: true,
         pushNotificationsEnabled: true,
         preferredCurrency: true,
+        language: true,
+        isPro: true,
+        proExpiresAt: true,
+        darkMode: true,
+        budgetAlerts: true,
+        priceAlerts: true,
+        weeklyReport: true,
         createdAt: true,
       } as any,
     });
@@ -416,6 +433,12 @@ export class AuthService {
         isBiometricsEnabled: dto.isBiometricsEnabled,
         pushNotificationsEnabled: dto.pushNotificationsEnabled,
         preferredCurrency: dto.preferredCurrency,
+        language: dto.language,
+        isPro: dto.isPro,
+        darkMode: dto.darkMode,
+        budgetAlerts: dto.budgetAlerts,
+        priceAlerts: dto.priceAlerts,
+        weeklyReport: dto.weeklyReport,
       } as any,
     });
 
@@ -429,6 +452,12 @@ export class AuthService {
       isBiometricsEnabled: (user as any).isBiometricsEnabled,
       pushNotificationsEnabled: (user as any).pushNotificationsEnabled,
       preferredCurrency: (user as any).preferredCurrency,
+      language: (user as any).language,
+      isPro: (user as any).isPro,
+      darkMode: (user as any).darkMode,
+      budgetAlerts: (user as any).budgetAlerts,
+      priceAlerts: (user as any).priceAlerts,
+      weeklyReport: (user as any).weeklyReport,
     };
   }
 

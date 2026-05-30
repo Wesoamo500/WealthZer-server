@@ -151,11 +151,14 @@ export class FinancialService {
     const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
-    const [assets, transactions, budgets] = await Promise.all([
+    const [assets, transactions, budgets, userRecord] = await Promise.all([
       this.prisma.portfolioAsset.findMany({ where: { userId } }),
       this.prisma.transaction.findMany({ where: { userId } }),
       this.prisma.budget.findMany({ where: { userId } }),
+      this.prisma.user.findUnique({ where: { id: userId }, select: { preferredCurrency: true } } as any),
     ]);
+
+    const currency = (userRecord as any)?.preferredCurrency || 'USD';
 
     // Fetch real-time prices for all assets
     const priceMap = await this.priceService.getBatchPrices(
@@ -283,7 +286,7 @@ export class FinancialService {
       budgets: budgetsWithProgress.map(b => ({ ...b, emoji: this.getCategoryEmoji(b.category) })),
       assets: assetsWithPrices,
       allocations,
-      currency: "GHS",
+      currency,
       updatedAt: now,
       budgetSummary: {
         month: now.toLocaleDateString('en-US', { month: 'long', year: 'numeric' }),
@@ -641,5 +644,21 @@ export class FinancialService {
         KES: 153,
       };
     }
+  }
+
+  async getProfileStats(userId: string) {
+    const [netWorthData, healthScoreData, assetCount, txnCount] = await Promise.all([
+      this.getNetWorth(userId),
+      this.getHealthScore(userId),
+      this.prisma.portfolioAsset.count({ where: { userId } }),
+      this.prisma.transaction.count({ where: { userId } }),
+    ]);
+
+    return {
+      netWorth: netWorthData.totalNetWorth,
+      healthScore: healthScoreData.score,
+      assetCount,
+      txnCount,
+    };
   }
 }

@@ -6,7 +6,10 @@ import { User } from './user.decorator';
 
 @Controller('auth')
 export class AuthController {
-  constructor(@Inject('AUTH_SERVICE') private readonly authClient: ClientProxy) {}
+  constructor(
+    @Inject('AUTH_SERVICE') private readonly authClient: ClientProxy,
+    @Inject('FINANCIAL_SERVICE') private readonly financialClient: ClientProxy,
+  ) {}
 
   @Public()
   @Post('register')
@@ -58,7 +61,15 @@ export class AuthController {
 
   @Get('profile')
   async getProfile(@User('userId') userId: string) {
-    return firstValueFrom(this.authClient.send({ cmd: 'get-profile' }, { userId }));
+    const [profile, stats] = await Promise.all([
+      firstValueFrom(this.authClient.send({ cmd: 'get-profile' }, { userId })),
+      firstValueFrom(this.financialClient.send({ cmd: 'get-profile-stats' }, { userId })),
+    ]);
+
+    return {
+      profile,
+      stats,
+    };
   }
 
   @Patch('profile')
